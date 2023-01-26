@@ -29,45 +29,63 @@ g. If using a list object, how to you instantiate it with the correct number of 
 import threading
 
 # global sum
-SUM = 0
+global_sum = 0
 
-
-def summing(index, number, results):
-    sum = 0
-    for i in range(number):
-        sum += i
-        print(f'{index=}, {i=}, {sum=}\n', end="")
-    results[index] = sum
+def sumofall(n):
+    global global_sum
+    for x in range(1, n+1):
+         global_sum += x
 
 
 def main():
-
-    # If not using a global, use this list to store your results
-    results = [0] * 3
-
-    threads = []
-    threads.append(threading.Thread(target=summing, args=(0, 10, results)))
-    threads.append(threading.Thread(target=summing, args=(1, 13, results)))
-    threads.append(threading.Thread(target=summing, args=(2, 17, results)))
     
-    for t in threads:
-        t.start()
-        
-    for t in threads:
-        t.join()
+    # If not using a global, use this list to store your results
+   #  results = [0] * 3
 
-    # If using a global, place these asserts after the call to your summing function
+   #  calling globla sum
+    global global_sum
+
+    # If using a global, place these asserts after the call to your summing function 
     # to check that your code is working correctly
-    #assert SUM == 45, f'The sum should equal 45 but instead was {SUM}'
-    #assert SUM == 78, f'The sum should equal 78 but instead was {SUM}'
-    #assert SUM == 136, f'The sum should equal 136 but instead was {SUM}'
+
+   #  setting the arg to the function
+    t1 = threading.Thread(target=sumofall, args=(9,))
+    t2 = threading.Thread(target=sumofall, args=(12,))
+    t3 = threading.Thread(target=sumofall, args=(16,))
+
+   #  starting the first thread
+    t1.start()
+    t1.join()
+    assert global_sum == 45, f'The sum should equal 45 but instead was {global_sum}'
+
+    global_sum = 0
+    #  starting the second thread
+    t2.start()
+    t2.join()
+    assert global_sum == 78, f'The sum should equal 45 but instead was {global_sum}'
+    global_sum = 0
+    #  starting the third thread
+    t3.start()
+    t3.join()
+    assert global_sum == 136, f'The sum should equal 136 but instead was {global_sum}'
+
+
+
+   #  sumofall(11)
+   #  assert global_sum == 78, f'The sum should equal 78 but instead was {global_sum}' 
+   #  sumofall(136)
+   #  assert global_sum == 136, f'The sum should equal 136 but instead was {global_sum}'
+    
+   
+
+
     # If using a list object, place these asserts after the call to your summing function
     # to check that your code is working correctly
-    assert results[0] == 45, f'The sum should equal 45 but instead was {results[0]}'
-    assert results[1] == 78, f'The sum should equal 78 but instead was {results[1]}'
-    assert results[2] == 136, f'The sum should equal 136 but instead was {results[2]}'
-
+    #assert results[0] == 45, f'The sum should equal 45 but instead was {results[0]}'  
+    #assert results[1] == 78, f'The sum should equal 78 but instead was {results[1]}'    
+    #assert results[2] == 136, f'The sum should equal 136 but instead was {results[2]}'
 
 if __name__ == '__main__':
     main()
     print("DONE")
+

@@ -1,7 +1,7 @@
 import threading
 '''
-Requirements:Create a class that extends the 'threading.Thread'
-1.  class (see https://stackoverflow.com/questions/15526858/how-to-extend-a-class-in-python). This means that the class IS a thread. 
+Requirements:
+1. Create a class that extends the 'threading.Thread' class (see https://stackoverflow.com/questions/15526858/how-to-extend-a-class-in-python). This means that the class IS a thread. 
    Any objects instantiated using this class ARE threads.
 2. Instantiate this thread class that computes the sum of all numbers 
    between one and that number (exclusive)
@@ -32,44 +32,58 @@ d. How do you get the value an object's attribute (see https://datagy.io/python-
 # DO NOT USE GLOBALS #
 ######################
 
-class SummingNumbers(threading.Thread):
-    '''Sums numbers'''
-    def __init__(self, number):
-        threading.Thread.__init__(self)
-        self.sum = 0
-        self.number = number
+# TODO - Create a thread class
+class sumofall(threading.Thread):
+   
+   # contruster
+   def __init__(self, number):
+      threading.Thread.__init__(self)
+      self.number = number
+      print(f'{self.number}')
+      self.sum = 0
 
-    def run(self):
-        for x in range(self.number):
-            self.sum = self.sum + x
-            #print(f'{self.sum=}')
-            
+   # 
+   def run(self):
+      for x in range(1, self.number):
+         self.sum = self.sum + x
+         print(f'{self.sum}')
+      return self.sum
+
+
+   
 def main():
+   # Instantiate your thread class and pass in 10.
+   # Test (assert) if its sum attribute is equal to 45.
+   # Note: do no use 'yourThread' for the name of your thread object
+   #  t1 = threading.Thread(target= yourThread.add, args=(10,) )
+
+   # appling the argument through the class
+   t1 = sumofall(10)
+   t2 = sumofall(13)
+   t3 = sumofall(17)
+
+   # starting the program
+   t1.start()
+   # running the funtion
+   t1.join()
+   assert t1.sum == 45, f'The sum should equal 45 but instead was {t1.sum}'
+
+   #  # Repeat, passing in 13
+   # starting the program
+   t2.start()
+   # running the funtion
+   t2.join()
+   assert t2.sum == 78, f'The sum should equal 78 but instead was {t2.sum}'
     
-    t1 = SummingNumbers(10)
-    t2 = SummingNumbers(13)
-    t3 = SummingNumbers(17)
-    
-    t1.start()
-    t2.start()
-    t3.start()
-    
-    t1.join()
-    t2.join()
-    t3.join()
-    
-    # Instantiate your thread class and pass in 10.
-    # Test (assert) if its sum attribute is equal to 45.
-    # Note: do no use 'yourThread' for the name of your thread object
-    assert t1.sum == 45, f'The sum should equal 45 but instead was {t1.sum}'
-    
-    # Repeat, passing in 13
-    assert t2.sum == 78, f'The sum should equal 78 but instead was {t2.sum}'
-    
-    # Repeat, passing in 17
-    assert t3.sum == 136, f'The sum should equal 136 but instead was {t3.sum}'
+   #  # Repeat, passing in 17
+   # starting the program
+   t3.start()
+   # running the funtion
+   t3.join()
+   assert t3.sum == 136, f'The sum should equal 136 but instead was {t3.sum}'
+
 
 if __name__ == '__main__':
-    main()
-    assert threading.active_count() == 1
-    print("DONE")
+   main()
+   assert threading.active_count() == 1
+   print("DONE")
