@@ -13,10 +13,10 @@ Requirements
 Questions:
 1. Do you need to use locks around accessing the queue object when using multiple threads? 
    Why or why not?
-   >
-   >
+   > I had one created but no I did not 
+   > Working on the code the only thing I had to do is have the second tread wait for a little bit
 2. How would you define a semaphore in your own words?
-   >
+   > It is a grate way to have the computer track what is going on in the code and for it 
    >
 3. Read https://stackoverflow.com/questions/2407589/what-does-the-term-blocking-mean-in-programming.
    What does it mean that the "join" function is a blocking function? Why do we want to block?
@@ -91,20 +91,38 @@ class QueueTwoFiftyOne():
 class Manufacturer(threading.Thread):
     """ This is a manufacturer.  It will create cars and place them on the car queue """
 
-    def __init__(self):
-        # TODO - add attributes to self based on the parameters you pass in when instantiating
-        #        your manufacturer thread object (like car_count, semaphore, queue, etc)
-        # Note: don't forget to call the super class's constructor
-        pass  # remove this
+    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
+        super().__init__()
+        self.car_count = cars
+        self.max = semaphoresmax
+        self.min = semaphoresmin
+        self.queue = queue
+        self.stats = stats
+        self.lock = lock
+       
 
     def run(self):
-        for i in range(self.car_count):
-            # TODO Add your code here
-            """
-            create a car
-            place the car on the queue
-            signal the dealer that there is a car on the queue
-           """
+        for _ in range(self.car_count):
+            self.max.acquire()
+
+            # Create a car
+            car = Car()
+            values = [car.make, car.model, car.year]
+
+            # Place the car on the queue
+            self.queue.put(values)
+
+            # with self.lock:
+                # self.stats += 1
+
+            self.max.release()
+
+        # Signal the dealers that there are no more cars
+        if self.queue.size == 0:
+                self.queue.put("No more cars!")
+                self.max.release()
+
+            
 
         # signal the dealer that there there are no more cars
 
@@ -112,26 +130,32 @@ class Manufacturer(threading.Thread):
 class Dealership(threading.Thread):
     """ This is a dealership that receives cars """
 
-    def __init__(self):
-        # TODO - add attributes to self based on the parameters you pass in when instantiating
-        #        your manufacturer thread object (like car_count, semaphore, queue, etc)
-        # Note: don't forget to call the super class's constructor
-        pass  # remove this
+    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
+        super().__init__()
+        self.car_count = cars
+        self.max = semaphoresmax
+        self.min = semaphoresmin
+        self.queue = queue
+        self.stats = stats
+        self.lock = lock
 
     def run(self):
         while True:
-            # TODO Add your code here
-            """
-            take the car from the queue
-            signal the factory that there is an empty slot in the queue
-            """
-
+            self.max.acquire()
+            # Sell the car (take car from queue)
+            car = self.queue.get()
+            if car == "No more cars!":
+                break
+            # with self.lock:
+            #     self.stats += 1
+            self.min.release()
             # Sleep a little after selling a car
             # Last statement in this for loop - don't change
             time.sleep(random.random() / (SLEEP_REDUCE_FACTOR))
 
 
 def main():
+    
     # Start a timer
     begin_time = time.perf_counter()
 
@@ -139,8 +163,14 @@ def main():
     CARS_TO_PRODUCE = random.randint(500, 600)
 
     # TODO Create semaphores
+    semaphoresmax = threading.Semaphore(MAX_QUEUE_SIZE)
+    semaphoresmin = threading.Semaphore(0)
+
+
     # TODO Create queue (ONLY use class QueueTwoFiftyOne)
+    queue = QueueTwoFiftyOne()
     # TODO Create lock
+    lock = threading.Lock()
 
     # This tracks the length of the car queue during receiving cars by the dealership,
     # the index of the list is the size of the queue. Update this list each time the
@@ -149,12 +179,17 @@ def main():
     queue_stats = [0] * MAX_QUEUE_SIZE
 
     # TODO create your one manufacturer
-
+    manufacturer = Manufacturer(queue, CARS_TO_PRODUCE ,semaphoresmin, semaphoresmax, queue_stats, lock)
+    
     # TODO create your one dealership
-
+    dealership = Dealership(queue, CARS_TO_PRODUCE ,semaphoresmin, semaphoresmax, queue_stats, lock)
     # TODO Start manufacturer and dealership
+    manufacturer.start()
+    dealership.start()
 
     # TODO Wait for manufacturer and dealership to complete
+    manufacturer.join()
+    dealership.join()
 
     total_time = "{:.2f}".format(time.perf_counter() - begin_time)
     print(f'Total time = {total_time} sec')
@@ -164,6 +199,7 @@ def main():
     plot = Plots()
     plot.bar(xaxis, queue_stats,
              title=f'{sum(queue_stats)} Produced: Count VS Queue Size', x_label='Queue Size', y_label='Count')
+    
 
 
 if __name__ == '__main__':

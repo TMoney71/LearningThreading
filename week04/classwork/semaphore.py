@@ -17,7 +17,7 @@ def main():
     
     sem = threading.Semaphore(0)
     
-    l = []
+    l = ['other']
     l.pop()
     
     threads = [threading.Thread(target=display, args=(sem, f'{i}')) for i in range(DISPLAY_THREADS)]
