@@ -86,29 +86,61 @@ class QueueTwoFiftyOne():
 class Manufacturer(threading.Thread):
     """ This is a manufacturer.  It will create cars and place them on the car queue """
 
-    def __init__(self):
+    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
         self.cars_to_produce = random.randint(200, 300)     # Don't change
+        super().__init__()
+        self.car_count = cars
+        self.max = semaphoresmax
+        self.min = semaphoresmin
+        self.queue = queue
+        self.stats = stats
+        self.lock = lock
+       
 
     def run(self):
-        # TODO produce the cars, the send them to the dealerships
+        for _ in range(self.car_count):
+            self.max.acquire()
 
-        # TODO wait until all of the manufacturers are finished producing cars
+            # Create a car
+            car = Car()
+            values = [car.make, car.model, car.year]
 
-        # TODO "Wake up/signal" the dealerships one more time.
-        # Select one manufacturer to do this (hint: pass in and use the manufacturer_id)
-        pass
+            # Place the car on the queue
+            self.queue.put(values)
+
+            # with self.lock:
+                # self.stats += 1
+
+            self.max.release()
+
+        # Signal the dealers that there are no more cars
+        if self.queue.size == 0:
+                self.queue.put("No more cars!")
+                self.max.release()
 
 
 class Dealership(threading.Thread):
     """ This is a dealer that receives cars """
 
-    def __init__(self):
-        pass
+    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
+        super().__init__()
+        self.car_count = cars
+        self.max = semaphoresmax
+        self.min = semaphoresmin
+        self.queue = queue
+        self.stats = stats
+        self.lock = lock
 
     def run(self):
         while True:
-            # TODO handle a car
-
+            self.max.acquire()
+            # Sell the car (take car from queue)
+            car = self.queue.get()
+            if car == "No more cars!":
+                break
+            # with self.lock:
+            #     self.stats += 1
+            self.min.release()
             # Sleep a little - don't change.  This is the last line of the loop
             time.sleep(random.random() / (SLEEP_REDUCE_FACTOR))
 
