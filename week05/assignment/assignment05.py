@@ -15,11 +15,11 @@ Requirements
    
 Questions:
 1. How would you define a barrier in your own words?
-   >
+   > It is like a gate where you can only allow this many people in no more no less
    >
 2. Why is a barrier necessary in this assignment?
-   >
-   >
+   >You cant send the all finished before each thread is done you have to wait for them all to be done 
+   >or the program will end before it is supposed to
 '''
 
 from datetime import datetime, timedelta
@@ -86,35 +86,41 @@ class QueueTwoFiftyOne():
 class Manufacturer(threading.Thread):
     """ This is a manufacturer.  It will create cars and place them on the car queue """
 
-    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
+    def __init__(self, id, queue, semaphoresmin: threading.Semaphore, semaphoresmax: threading.Semaphore, stats, dealer_count, lock, barrier: threading.Barrier):
         self.cars_to_produce = random.randint(200, 300)     # Don't change
         super().__init__()
-        self.car_count = cars
+        self.id = id
         self.max = semaphoresmax
         self.min = semaphoresmin
         self.queue = queue
         self.stats = stats
+        self.dealer = dealer_count
         self.lock = lock
+        self.barrier = barrier
        
 
     def run(self):
-        for _ in range(self.car_count):
-            self.max.acquire()
+        for _ in range(self.cars_to_produce):
+            self.min.acquire()
 
             # Create a car
             car = Car()
-            values = [car.make, car.model, car.year]
+            # values = [car.make, car.model, car.year]
 
             # Place the car on the queue
-            self.queue.put(values)
+            self.queue.put(car)
+            # print(self.queue)
 
-            # with self.lock:
-                # self.stats += 1
+            with self.lock:
+                self.stats[self.id] += 1
 
             self.max.release()
+        # Wait until all factories are finished producing cars
+        self.barrier.wait()
 
         # Signal the dealers that there are no more cars
-        if self.queue.size == 0:
+        if self.id == 0:
+            for _ in range(self.dealer):
                 self.queue.put("No more cars!")
                 self.max.release()
 
@@ -122,9 +128,9 @@ class Manufacturer(threading.Thread):
 class Dealership(threading.Thread):
     """ This is a dealer that receives cars """
 
-    def __init__(self, queue, cars, semaphoresmin, semaphoresmax, stats, lock):
+    def __init__(self, id, queue, semaphoresmin:threading.Semaphore, semaphoresmax:threading.Semaphore, stats, lock):
         super().__init__()
-        self.car_count = cars
+        self.id = id
         self.max = semaphoresmax
         self.min = semaphoresmin
         self.queue = queue
@@ -135,11 +141,13 @@ class Dealership(threading.Thread):
         while True:
             self.max.acquire()
             # Sell the car (take car from queue)
+            # print(self.queue.items)
             car = self.queue.get()
             if car == "No more cars!":
                 break
-            # with self.lock:
-            #     self.stats += 1
+
+            with self.lock:
+                self.stats[self.id] += 1
             self.min.release()
             # Sleep a little - don't change.  This is the last line of the loop
             time.sleep(random.random() / (SLEEP_REDUCE_FACTOR))
@@ -154,29 +162,49 @@ def run_production(manufacturer_count, dealer_count):
     begin_time = time.perf_counter()
 
     # TODO Create semaphore(s)
+    semaphoresmax = threading.Semaphore(0)
+    semaphoresmin = threading.Semaphore(MAX_QUEUE_SIZE)
+
     # TODO Create queue
+    queue = QueueTwoFiftyOne()
     # TODO Create lock(s)
+    lock = threading.Lock()
     # TODO Create barrier(s)
+    barrier = threading.Barrier(manufacturer_count)
+
 
     # This is used to track the number of cars receives by each dealer
     dealer_stats = list([0] * dealer_count)
+    manufacturer_stats = list([0] * manufacturer_count)
 
     # TODO create your manufacturers, each manufacturer will create CARS_TO_CREATE_PER_MANUFACTURER
+    manufacturer = [Manufacturer(i, queue, semaphoresmin, semaphoresmax, manufacturer_stats, dealer_count, lock, barrier) for i in range(manufacturer_count)]
 
     # TODO create your dealerships
-
+    dealers = [Dealership(i, queue, semaphoresmin, semaphoresmax, dealer_stats, lock) for i in range(dealer_count)]
     # TODO Start all dealerships
-
+    for i in range(dealer_count):
+        dealers[i].start()
+    
+    time.sleep(1)
     # TODO Start all manufacturers
+    for i in range(manufacturer_count):
+        manufacturer[i].start()
 
     # TODO Wait for manufacturers and dealerships to complete
+    time.sleep(1)
+    for i in range(manufacturer_count):
+        manufacturer[i].join()
+
+    for i in range(dealer_count):
+        dealers[i].join()
 
     run_time = time.perf_counter() - begin_time
 
     # This function must return the following - only change the variable names, if necessary.
     # manufacturer_stats: is a list of the number of cars produced by each manufacturer,
     #                collect this information after the manufacturers are finished.
-    return (run_time, car_queue.get_max_size(), dealer_stats, manufacturer_stats)
+    return (run_time, queue.get_max_size(), dealer_stats, manufacturer_stats)
 
 
 def main():

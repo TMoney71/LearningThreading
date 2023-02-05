@@ -143,6 +143,7 @@ class Dealership(threading.Thread):
         while True:
             self.max.acquire()
             # Sell the car (take car from queue)
+            print(self.queue.items)
             car = self.queue.get()
             if car == "No more cars!":
                 break
