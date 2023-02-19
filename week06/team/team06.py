@@ -10,7 +10,7 @@ CPU_COUNT = mp.cpu_count()
 
 # TODO Your final video needs to have 300 processed frames.  However, while you are 
 # testing your code, set this much lower
-FRAME_COUNT = 20
+FRAME_COUNT = 300
 
 RED   = 0
 GREEN = 1
@@ -40,21 +40,35 @@ def create_new_frame(image_file, green_file, process_file):
 
 
 # TODO add any functions you need here
+def new_fun(files):
+    create_new_frame(files[0], files[1], files[2])
+     
 
 
 
 if __name__ == '__main__':
     beginTime = timeit.default_timer()
 
-    # TODO - the code currently is set to only process the 10th frame.
-    # Modify the code to process all 300 frames using a process pool and map.
     
-    image_number = 10
+    # image_number = 10
+    # first_list = []
+    # image_number = 1
+    second_list = []
+    for image_number in range(1, FRAME_COUNT):
+        # first_list = []
+        image_file = rf'elephant/image{image_number:03d}.png'
+        # first_list.append(image_file)
+        green_file = rf'green/image{image_number:03d}.png'
+        # first_list.append(green_file)
+        process_file = rf'processed/image{image_number:03d}.png'
+        # first_list.append((process_file)
 
-    image_file = rf'elephant/image{image_number:03d}.png'
-    green_file = rf'green/image{image_number:03d}.png'
-    process_file = rf'processed/image{image_number:03d}.png'
+        second_list.append((image_file, green_file, process_file))
 
-    create_new_frame(image_file, green_file, process_file)
+    # print(second_list)
+    # outputs = []
+    with mp.Pool(CPU_COUNT) as p:
+        # outputs = p.map(create_new_frame(i[0], i[1], i[2]))
+            p.map(new_fun, second_list)
     
     print(f'\nTime To process all images = {timeit.default_timer() - beginTime} sec')

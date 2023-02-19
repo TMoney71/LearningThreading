@@ -9,14 +9,14 @@ Requirements
 Questions:
 1. What is the relationship between the time to process versus the number of CPUs?
    Does there appear to be an asymptote? If so, what do you think the asymptote is?
-   >
+   >I think that there is an asymptote 
    >
 2. Is this a CPU bound or IO bound problem? Why?
-   >
+   > CPU bound because we are foucused on useing all of the cpus as much a possiable
    >
 3. Would threads work on this assignment? Why or why not? (guess if you need to) 
-   >
-   >
+   > I dont think so becuase we are using all the cpus in this case and the work load is alread divied up
+   > and there is no more space to seperate it more.
 '''
 
 from matplotlib.pylab import plt  # load plot library
@@ -30,7 +30,7 @@ CPU_COUNT = mp.cpu_count() + 4
 
 # TODO Your final video need to have 300 processed frames.  However, while you are 
 # testing your code, set this much lower
-FRAME_COUNT = 20
+FRAME_COUNT = 300
 
 RED   = 0
 GREEN = 1
@@ -59,7 +59,8 @@ def create_new_frame(image_file, green_file, process_file):
     image_new.save(process_file)
 
 
-# TODO add any functions you need here
+def new_fun(files):
+    create_new_frame(files[0], files[1], files[2])
 
 
 
@@ -71,8 +72,14 @@ if __name__ == '__main__':
     xaxis_cpus = []
     yaxis_times = []
 
-    # process the 10th frame (TODO modify this to loop over all frames)
-    image_number = 10
+    frames = []
+    for image_number in range(1, FRAME_COUNT+1):
+         image_file = rf'elephant/image{image_number:03d}.png'
+         green_file = rf'green/image{image_number:03d}.png'
+         process_file = rf'processed/image{image_number:03d}.png'
+
+         frames.append((image_file, green_file, process_file))
+
 
     image_file = rf'elephant/image{image_number:03d}.png'
     green_file = rf'green/image{image_number:03d}.png'
@@ -80,10 +87,27 @@ if __name__ == '__main__':
 
     start_time = timeit.default_timer()
     create_new_frame(image_file, green_file, process_file)
+
+
     print(f'\nTime To Process all images = {timeit.default_timer() - start_time}')
 
     print(f'Total Time for ALL processing: {timeit.default_timer() - all_process_time}')
+    for i in range(1, CPU_COUNT+1): 
+        with mp.Pool(i) as p:
+            p.map(new_fun, frames)
+        xaxis_cpus.append(i)
+        if i == 1:
+            yaxis_times.append(timeit.default_timer() - start_time)
+        else:
+            yaxis_times.append(timeit.default_timer() - (start_time + sum(yaxis_times)))
 
+    # for i in range(CPU_COUNT):
+    #     xaxis_cpus.append(i)
+    # for i in range(CPU_COUNT):
+    #     yaxis_times.append(timeit.default_timer() - all_process_time)
+    
+
+        
     # create plot of results and also save it to a PNG file
     plt.plot(xaxis_cpus, yaxis_times, label=f'{FRAME_COUNT}')
     
